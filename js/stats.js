@@ -123,3 +123,71 @@ export function computeTeamStats(events) {
   t.siebenM_quote = t.siebenM_versuche > 0 ? Math.round((t.siebenM_tore / t.siebenM_versuche) * 100) : 0;
   return t;
 }
+
+// ============================================================
+// Erweiterte Analysen für die Auswertungsseite (Charts)
+// ============================================================
+
+/** Kumulativer Spielstandverlauf über die Zeit: [{sec, us, them}, ...], beginnend bei {0,0,0} */
+export function computeScoreTimeline(events) {
+  const sorted = events.slice().sort((a, b) => a.matchSeconds - b.matchSeconds);
+  const timeline = [{ sec: 0, us: 0, them: 0 }];
+  let us = 0, them = 0;
+  for (const e of sorted) {
+    let changed = false;
+    if (e.category === 'attack' && (e.type === 'goal' || e.type === 'sevenm_goal')) { us++; changed = true; }
+    if (e.category === 'keeper' && e.type === 'gegentor') { them++; changed = true; }
+    if (e.category === 'tempo' && e.result === 'goal') {
+      if (e.type === 'konter_eigen' || e.type === 'welle_eigen') { us++; changed = true; }
+      if (e.type === 'konter_gegner' || e.type === 'welle_gegner') { them++; changed = true; }
+    }
+    if (changed) timeline.push({ sec: e.matchSeconds, us, them });
+  }
+  return timeline;
+}
+
+/** Momentum-Segmente (Tordifferenz-Verlauf) aus einer Score-Timeline, für Balken-/Flächendarstellung */
+export function computeMomentumSegments(timeline, totalSeconds) {
+  const segments = [];
+  for (let i = 0; i < timeline.length; i++) {
+    const start = timeline[i].sec;
+    const end = i + 1 < timeline.length ? timeline[i + 1].sec : Math.max(totalSeconds, start + 1);
+    segments.push({ start, end, diff: timeline[i].us - timeline[i].them });
+  }
+  return segments;
+}
+
+/** Würfe & Trefferquote je Wurfposition (nur Feldwürfe mit erfasster Position) */
+export function computeShotsByPosition(events) {
+  const map = new Map();
+  for (const e of events) {
+    if (e.category !== 'attack' || !e.position) continue;
+    if (!['goal', 'miss', 'blocked', 'post'].includes(e.type)) continue;
+    if (!map.has(e.position)) map.set(e.position, { attempts: 0, goals: 0 });
+    const m = map.get(e.position);
+    m.attempts++;
+    if (e.type === 'goal') m.goals++;
+  }
+  return map;
+}
+
+/** Gehaltene/kassierte Bälle je Position aus Torwart-Sicht */
+export function computeKeeperShotsByPosition(events) {
+  const map = new Map();
+  for (const e of events) {
+    if (e.category !== 'keeper' || !e.position) continue;
+    if (!['parade', 'gegentor'].includes(e.type)) continue;
+    if (!map.has(e.position)) map.set(e.position, { paraden: 0, gegentore: 0 });
+    const m = map.get(e.position);
+    if (e.type === 'parade') m.paraden++;
+    if (e.type === 'gegentor') m.gegentore++;
+  }
+  return map;
+}
+
+/** Eindeutige Spielerliste aus mehreren Spielen zusammenführen (nach id) */
+export function mergePlayers(playerLists) {
+  const map = new Map();
+  for (const list of playerLists) for (const p of list) map.set(p.id, p);
+  return Array.from(map.values());
+}
