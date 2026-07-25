@@ -1,4 +1,4 @@
-const CACHE_NAME = 'handball-scout-v2';
+const CACHE_NAME = 'handball-scout-v5';
 
 const APP_SHELL = [
   './',
@@ -11,6 +11,7 @@ const APP_SHELL = [
   './js/stats.js',
   './js/ui.js',
   './js/xlsx-writer.js',
+  './js/pdf-writer.js',
   './js/screens/home.js',
   './js/screens/setup.js',
   './js/screens/live.js',
