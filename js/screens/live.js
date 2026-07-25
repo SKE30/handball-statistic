@@ -122,13 +122,35 @@ export function renderLive(root, { gameId }, nav) {
       sheet.appendChild(el('div', { class: 'row', style: 'margin-top:10px;' }, [
         el('button', {
           class: 'btn btn-primary btn-lg', style: 'flex:1',
-          onclick: () => { close(); saveEvent({ category: CATEGORY.TEMPO, type: tempoType.id, result: 'goal', playerId: null }); },
+          onclick: () => {
+            close();
+            const base = { category: CATEGORY.TEMPO, type: tempoType.id, result: 'goal' };
+            if (activePlayerId) saveEvent(base);
+            else pickScorerThenSave(base);
+          },
         }, 'Tor'),
         el('button', {
           class: 'btn btn-lg', style: 'flex:1',
           onclick: () => { close(); saveEvent({ category: CATEGORY.TEMPO, type: tempoType.id, result: 'no_goal', playerId: null }); },
         }, 'Kein Tor'),
       ]));
+    });
+  }
+
+  function pickScorerThenSave(basePartial) {
+    openSheet((sheet, close) => {
+      sheet.appendChild(el('h2', {}, 'Wer hat das Tor erzielt?'));
+      const grid = el('div', { class: 'player-grid', style: 'margin-top:10px;' });
+      lineup.slice().sort((a, b) => a.number - b.number).forEach((p) => {
+        grid.appendChild(el('button', {
+          class: 'player-tile',
+          onclick: () => { close(); saveEvent({ ...basePartial, playerId: p.id }); },
+        }, [
+          el('div', { class: 'num' }, String(p.number)),
+          el('div', { class: 'name' }, p.name),
+        ]));
+      });
+      sheet.appendChild(grid);
     });
   }
 
@@ -207,26 +229,25 @@ export function renderLive(root, { gameId }, nav) {
     ];
     const tabs = el('div', { class: 'tabs' }, tabsDef.map((t) => el('button', {
       class: `tab ${activeTab === t.id ? 'active' : ''}`,
-      onclick: () => { activeTab = t.id; activePlayerId = null; build(); },
+      onclick: () => { activeTab = t.id; build(); }, // Spielerauswahl bleibt beim Tab-Wechsel bestehen
     }, t.label)));
     screen.appendChild(tabs);
 
-    // --- Spieler-Grid (nicht bei Tempo) ---
-    if (activeTab !== CATEGORY.TEMPO) {
-      const ordered = [
-        ...recents.map((id) => lineup.find((p) => p.id === id)).filter(Boolean),
-        ...lineup.filter((p) => !recents.includes(p.id)).sort((a, b) => a.number - b.number),
-      ];
-      const grid = el('div', { class: 'player-grid' }, ordered.map((p) => el('button', {
-        class: `player-tile ${recents.includes(p.id) ? 'recent' : ''} ${activePlayerId === p.id ? 'active' : ''}`,
-        onclick: () => { activePlayerId = activePlayerId === p.id ? null : p.id; build(); },
-      }, [
-        el('div', { class: 'num' }, String(p.number)),
-        el('div', { class: 'name' }, p.name),
-      ])));
-      screen.appendChild(grid);
-    } else {
-      screen.appendChild(el('div', { style: 'color:var(--text-dim);font-size:13px;' }, 'Tempospiel ist teambezogen – keine Spielerauswahl nötig.'));
+    // --- Spieler-Grid (auf allen Tabs, auch Tempo - dort optional für den Torschützen) ---
+    const ordered = [
+      ...recents.map((id) => lineup.find((p) => p.id === id)).filter(Boolean),
+      ...lineup.filter((p) => !recents.includes(p.id)).sort((a, b) => a.number - b.number),
+    ];
+    const grid = el('div', { class: 'player-grid' }, ordered.map((p) => el('button', {
+      class: `player-tile ${recents.includes(p.id) ? 'recent' : ''} ${activePlayerId === p.id ? 'active' : ''}`,
+      onclick: () => { activePlayerId = activePlayerId === p.id ? null : p.id; build(); },
+    }, [
+      el('div', { class: 'num' }, String(p.number)),
+      el('div', { class: 'name' }, [p.name, p.isKeeper ? el('span', { style: 'color:var(--blue);font-weight:800;' }, ' 🧤') : null]),
+    ])));
+    screen.appendChild(grid);
+    if (activeTab === CATEGORY.TEMPO) {
+      screen.appendChild(el('div', { style: 'color:var(--text-dim);font-size:12px;' }, 'Spielerauswahl bei Tempo optional – nur bei "Tor" wird ein Torschütze abgefragt.'));
     }
 
     // --- Aktionen ---
