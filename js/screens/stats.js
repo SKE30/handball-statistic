@@ -34,6 +34,7 @@ export function renderStats(root, { gameId }, nav) {
           : el('span', { class: 'pill finished' }, 'BEENDET'),
         el('button', { class: 'btn', onclick: () => exportExcel(game, allPlayers, events, playerStats, team, score) }, '📊 Als Excel exportieren (.xlsx)'),
         el('button', { class: 'btn', onclick: () => generateTrainerReport(game, allPlayers, events, playerStats, team, score) }, '📄 Trainerbericht (PDF)'),
+        el('button', { class: 'btn', onclick: () => nav.goAnalytics(gameId) }, '📈 Detaillierte Auswertung'),
       ]),
     ]));
 
