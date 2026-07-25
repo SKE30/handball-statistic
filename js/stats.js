@@ -18,7 +18,7 @@ export function computeScore(events) {
 
 function emptyPlayerStat() {
   return {
-    tore: 0, wuerfe: 0, fehlwuerfe: 0, geblockt: 0, pfosten: 0,
+    feldTore: 0, tore: 0, wuerfe: 0, fehlwuerfe: 0, geblockt: 0, pfosten: 0,
     siebenM_tore: 0, siebenM_versuche: 0, assists: 0, technischeFehler: 0,
     ballgewinne: 0, blocks: 0, verschuldete7m: 0, gelb: 0, zweiMin: 0, rot: 0,
     paraden: 0, gegentore: 0, siebenM_paraden: 0,
@@ -36,11 +36,11 @@ export function computePlayerStats(events, players) {
     if (!s) continue;
 
     switch (e.type) {
-      case 'goal': s.tore++; s.wuerfe++; break;
+      case 'goal': s.feldTore++; s.wuerfe++; break;
       case 'miss': s.fehlwuerfe++; s.wuerfe++; break;
       case 'blocked': s.geblockt++; s.wuerfe++; break;
       case 'post': s.pfosten++; s.wuerfe++; break;
-      case 'sevenm_goal': s.siebenM_tore++; s.siebenM_versuche++; s.tore++; break;
+      case 'sevenm_goal': s.siebenM_tore++; s.siebenM_versuche++; break;
       case 'sevenm_miss': s.siebenM_versuche++; break;
       case 'assist': s.assists++; break;
       case 'technical_fault': s.technischeFehler++; break;
@@ -58,15 +58,34 @@ export function computePlayerStats(events, players) {
 
   const list = Array.from(map.values());
   for (const s of list) {
-    s.trefferquote = s.wuerfe > 0 ? Math.round((s.tore / s.wuerfe) * 100) : 0;
+    // Gesamttore = Feldtore + 7m-Tore. Trefferquote bezieht sich NUR auf Feldwürfe
+    // (7m-Versuche laufen separat als eigene "7m Quote"), sonst kann die Quote > 100% werden.
+    s.tore = s.feldTore + s.siebenM_tore;
+    s.trefferquote = s.wuerfe > 0 ? Math.round((s.feldTore / s.wuerfe) * 100) : 0;
+
+    // Paradenquote für Torhüterinnen: gehaltene Bälle (inkl. 7m) / alle auf sie geworfenen Bälle
+    const geworfenAufsTor = s.paraden + s.siebenM_paraden + s.gegentore;
+    s.paradenquote = geworfenAufsTor > 0 ? Math.round(((s.paraden + s.siebenM_paraden) / geworfenAufsTor) * 100) : 0;
   }
   return list;
+}
+
+/** Torwart-Kennzahlen auf Mannschaftsebene (Summe über alle Spielerinnen im Tor) */
+export function computeKeeperTeamStats(events) {
+  let paraden = 0, gegentore = 0, siebenM_paraden = 0;
+  for (const e of events) {
+    if (e.category !== 'keeper') continue;
+    if (e.type === 'parade') paraden++;
+    if (e.type === 'gegentor') gegentore++;
+    if (e.type === 'sevenm_parade') siebenM_paraden++;
+  }
+  return { paraden, gegentore, siebenM_paraden };
 }
 
 /** Mannschaftsstatistik aus Events (eines Spiels oder mehrerer) */
 export function computeTeamStats(events) {
   const t = {
-    tore: 0, wuerfe: 0, fehlwuerfe: 0, technischeFehler: 0,
+    feldTore: 0, wuerfe: 0, fehlwuerfe: 0, technischeFehler: 0,
     ballgewinne: 0, blocks: 0,
     siebenM_tore: 0, siebenM_versuche: 0,
     konterEigenLaufen: 0, konterEigenTor: 0,
@@ -78,10 +97,10 @@ export function computeTeamStats(events) {
     if (e.category === 'attack') {
       if (['goal', 'miss', 'blocked', 'post'].includes(e.type)) {
         t.wuerfe++;
-        if (e.type === 'goal') t.tore++;
+        if (e.type === 'goal') t.feldTore++;
         if (e.type === 'miss') t.fehlwuerfe++;
       }
-      if (e.type === 'sevenm_goal') { t.siebenM_tore++; t.siebenM_versuche++; t.tore++; }
+      if (e.type === 'sevenm_goal') { t.siebenM_tore++; t.siebenM_versuche++; }
       if (e.type === 'sevenm_miss') t.siebenM_versuche++;
       if (e.type === 'technical_fault') t.technischeFehler++;
     }
@@ -97,7 +116,10 @@ export function computeTeamStats(events) {
       if (e.type === 'welle_gegner') { t.welleGegnerLaufen++; if (goal) t.welleGegnerTor++; }
     }
   }
-  t.wurfquote = t.wuerfe > 0 ? Math.round((t.tore / t.wuerfe) * 100) : 0;
+  // Gesamttore = Feldtore + 7m-Tore (entspricht dem Spielstand). Wurfquote bezieht sich
+  // NUR auf Feldwürfe, sonst könnte sie durch die separat gezählten 7m-Tore über 100% steigen.
+  t.tore = t.feldTore + t.siebenM_tore;
+  t.wurfquote = t.wuerfe > 0 ? Math.round((t.feldTore / t.wuerfe) * 100) : 0;
   t.siebenM_quote = t.siebenM_versuche > 0 ? Math.round((t.siebenM_tore / t.siebenM_versuche) * 100) : 0;
   return t;
 }
