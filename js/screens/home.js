@@ -47,6 +47,11 @@ export function renderHome(root, params, nav) {
       onclick: () => nav.goSetup(),
     }, '+ Neues Spiel anlegen'));
 
+    screen.appendChild(el('button', {
+      class: 'btn btn-block',
+      onclick: () => nav.goAnalytics(),
+    }, '📈 Auswertung (Saison & Einzelspiele)'));
+
     // --- Spielliste ---
     const gamesCard = el('div', { class: 'card' });
     gamesCard.appendChild(el('h2', {}, 'Spiele'));
