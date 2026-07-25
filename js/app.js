@@ -2,6 +2,7 @@ import { renderHome } from './screens/home.js';
 import { renderSetup } from './screens/setup.js';
 import { renderLive } from './screens/live.js';
 import { renderStats } from './screens/stats.js';
+import { renderAnalytics } from './screens/analytics.js';
 
 const root = document.getElementById('app');
 
@@ -11,6 +12,7 @@ export const nav = {
   goSetup: () => render('setup'),
   goLive: (gameId) => render('live', { gameId }),
   goStats: (gameId) => render('stats', { gameId }),
+  goAnalytics: (gameId) => render('analytics', { gameId }),
 };
 
 let currentCleanup = null;
@@ -18,7 +20,7 @@ let currentCleanup = null;
 function render(route, params = {}) {
   if (currentCleanup) { try { currentCleanup(); } catch (e) {} currentCleanup = null; }
   root.innerHTML = '';
-  const screens = { home: renderHome, setup: renderSetup, live: renderLive, stats: renderStats };
+  const screens = { home: renderHome, setup: renderSetup, live: renderLive, stats: renderStats, analytics: renderAnalytics };
   const fn = screens[route];
   currentCleanup = fn(root, params, nav) || null;
 }
