@@ -26,7 +26,15 @@ export function renderHome(root, params, nav) {
     players.sort((a, b) => a.number - b.number).forEach((p) => {
       list.appendChild(el('div', { class: 'player-row' }, [
         el('div', { class: 'player-num' }, String(p.number)),
-        el('div', { class: 'spacer' }, p.name),
+        el('div', { class: 'spacer' }, [
+          el('span', {}, p.name),
+          p.isKeeper ? el('span', { class: 'pill', style: 'background:var(--blue);margin-left:8px;' }, '🧤 TW') : null,
+        ]),
+        el('button', {
+          class: 'btn-ghost btn',
+          style: p.isKeeper ? 'border-color:var(--blue);color:var(--blue);' : '',
+          onclick: () => toggleKeeper(p),
+        }, 'TW'),
         el('button', { class: 'btn-ghost btn', onclick: () => removePlayer(p) }, '🗑'),
       ]));
     });
@@ -69,20 +77,33 @@ export function renderHome(root, params, nav) {
       sheet.appendChild(el('h2', {}, 'Neue Spielerin'));
       const numInput = el('input', { type: 'number', placeholder: 'Rückennummer', inputmode: 'numeric', style: 'margin:10px 0;width:100%;' });
       const nameInput = el('input', { type: 'text', placeholder: 'Name', style: 'margin-bottom:14px;width:100%;' });
+      let isKeeper = false;
+      const keeperBtn = el('button', { class: 'btn btn-block' }, '🧤 Ist Torhüterin');
+      keeperBtn.onclick = () => {
+        isKeeper = !isKeeper;
+        keeperBtn.className = isKeeper ? 'btn btn-primary btn-block' : 'btn btn-block';
+      };
       sheet.appendChild(numInput);
       sheet.appendChild(nameInput);
+      sheet.appendChild(el('div', { style: 'margin-bottom:14px;' }, keeperBtn));
       sheet.appendChild(el('button', {
         class: 'btn btn-primary btn-block',
         onclick: async () => {
           const number = parseInt(numInput.value, 10);
           const name = nameInput.value.trim();
           if (!name || Number.isNaN(number)) { toast('Rückennummer und Name angeben'); return; }
-          await PlayersDB.save({ id: uid(), number, name });
+          await PlayersDB.save({ id: uid(), number, name, isKeeper });
           close();
           build();
         },
       }, 'Speichern'));
     });
+  }
+
+  async function toggleKeeper(p) {
+    p.isKeeper = !p.isKeeper;
+    await PlayersDB.save(p);
+    build();
   }
 
   async function removePlayer(p) {
