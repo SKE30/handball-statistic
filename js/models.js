@@ -2,7 +2,7 @@
 // DATENMODELL (Konstanten & Typ-Definitionen als JSDoc)
 // ============================================================
 //
-// Player  { id, number, name }
+// Player  { id, number, name, isKeeper: bool }
 // Game    { id, date, opponent, homeAway: 'home'|'away', status: 'setup'|'live'|'finished',
 //           half: 1|2, timerRunning: bool, timerBaseSeconds: number, timerStartedAt: number|null,
 //           lineupPlayerIds: number[], createdAt }
@@ -19,8 +19,10 @@ export const CATEGORY = {
   TEMPO: 'tempo',
 };
 
-// Aktionen, die eine Wurfposition erlauben (optional, überspringbar)
-export const SHOT_EVENTS_WITH_POSITION = ['goal', 'miss', 'blocked', 'post'];
+// Aktionen, die eine Wurfposition erlauben (optional, überspringbar) —
+// gilt für Wurfaktionen im Angriff UND für Torwart-Aktionen (Parade/Gegentor),
+// damit man auch sieht, aus welcher Position gehalten/kassiert wurde.
+export const SHOT_EVENTS_WITH_POSITION = ['goal', 'miss', 'blocked', 'post', 'parade', 'gegentor'];
 
 export const POSITIONS = [
   { id: 'LA', label: 'Linksaußen' },
@@ -29,6 +31,9 @@ export const POSITIONS = [
   { id: 'RR', label: 'Rückraum rechts' },
   { id: 'RA', label: 'Rechtsaußen' },
   { id: 'KREIS', label: 'Kreis' },
+  { id: 'DL', label: 'Durchbruch links' },
+  { id: 'DM', label: 'Durchbruch Mitte' },
+  { id: 'DR', label: 'Durchbruch rechts' },
   { id: '7M', label: '7 Meter' },
 ];
 
